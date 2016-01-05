@@ -1,0 +1,125 @@
+<project name="Test JUnit" basedir=".." default="ear">
+	
+	<!-- setting the properties -->
+	<defaultexcludes add="**/*.dm/**" />
+	<property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
+	<!-- <property name="dist" value="exportEAR"/> -->
+	<property name="dist" value="./Targets"/>
+	<property name="websphere.serverhome" value="C:/Program Files/IBM/WebSphere/AppServer70" />
+
+	<!-- Defining the classpath -->
+	<path id="rtb.web.classpath">
+		<fileset dir="Real Time Benefits War/WebContent/WEB-INF/lib" includes="*.jar"/>
+		<!-- <fileset dir="C:/Program Files/IBM/SDP70/runtimes/base_v6/lib" includes="*.jar"/> -->
+		<fileset dir="${websphere.serverhome}" includes="**/*.jar"/>
+	</path>
+	
+	<!-- Compiling the Web Module -->
+	<target name="rtb-web-compile">
+        <javac  compiler="org.eclipse.jdt.core.JDTCompilerAdapter"
+    			source="1.6"
+        		target="1.6"
+        		srcdir="Real Time Benefits War/JavaSource" 
+                destdir="Real Time Benefits War/WebContent/WEB-INF/classes" 
+        		classpathref="rtb.web.classpath" 
+				verbose="false" 
+                debug="on" 
+                optimize="on" 
+                deprecation="off">
+				<classpath>
+ 		        	<!-- <fileset dir="C:/Program Files/IBM/SDP70Shared/plugins/org.apache.ant_1.6.5/lib" includes="ecj-3.7.1.jar"/> -->
+			     	  <fileset dir="${basedir}/Build/jacoco" includes="ecj-3.7.1.jar"/>
+ 			     </classpath>
+				<include name="**/*.java" />
+        </javac>
+	</target>
+	
+	<!-- Copy any resource or configuration files -->
+ 	<target name="copy-resources" description="Copy .properties and .xml files from source directory">
+		<copy todir="Real Time Benefits War/WebContent/WEB-INF/classes" includeEmptyDirs="no">
+			<fileset dir="Real Time Benefits War/WebContent/WEB-INF/config">	                
+				<include name="**/*.xml"/>         
+ 	        </fileset>
+			<fileset dir="Real Time Benefits War/JavaSource">	                
+				<include name="**/*.properties"/>
+				<include name="**/*.def"/> 
+				<include name="**/*.lst"/>
+				<include name="**/*.txt"/> 
+				<include name="**/*.dat"/>
+				<include name="**/*.dnx"/>
+				<include name="**/*.pv"/>
+				<include name="**/*.mh"/>
+				<include name="**/*.xlsx"/>
+			</fileset>
+ 	    </copy>
+ 	</target>
+  
+	<target name="pre-build" description="Performs the pre-build process">
+		<tstamp>
+			<format property="start.time" pattern="yyyyMMdd_HHmmss"/>
+		</tstamp>
+		<property name="versionName" value="Build_${start.time}"/>
+		<!-- ////////////////////////////////////////////////////////////////////////////////////////// -->
+		<echo message="Updating Real Time Benefits War........."/>
+		<!-- Turn off file serving -->
+		<!-- <replace file="Real Time Benefits War/WebContent/WEB-INF/ibm-web-ext.xmi" token="fileServingEnabled=&quot;true&quot;" value="fileServingEnabled=&quot;false&quot;"/> -->
+		<!-- Turn off serve servlets by class name -->
+		<replace file="Real Time Benefits War/WebContent/WEB-INF/ibm-web-ext.xmi" token="serveServletsByClassnameEnabled=&quot;true&quot;" value="serveServletsByClassnameEnabled=&quot;false&quot;"/>
+		<!-- delete the DISTRIBUTABLE checkbox if exists -->
+		<replace file="Real Time Benefits War/WebContent/WEB-INF/web.xml" token="&lt;distributable /&gt;" value=""/>
+		<!-- check the DISTRIBUTABLE checkbox -->
+		<replace file="Real Time Benefits War/WebContent/WEB-INF/web.xml" token="&lt;display-name&gt;rtb&lt;/display-name&gt;" value="&lt;display-name&gt;rtb&lt;/display-name&gt;"/>
+	</target>
+	
+	<!-- Creating War file -->
+	<target name="package-web" depends="rtb-web-compile,copy-resources,pre-build" description="Package WAR">
+		<war destfile="Real Time Benefits/rtb.war" duplicate="preserve"
+ 	         webxml="Real Time Benefits War/WebContent/WEB-INF/web.xml" compress="true"
+			 manifest="Real Time Benefits War/WebContent/META-INF/MANIFEST.MF">
+ 	         <fileset dir="Real Time Benefits War/WebContent" excludes="**/web.xml"/>
+ 	    </war>
+ 	</target>
+	
+	<!-- Creating ear file -->
+ 	<target name="ear" depends="addVersion,package-web" description="Build the .ear file">
+		<echo message="building ear file to ${dist} "/>
+			<ear destfile="${dist}/rtb.ear" 
+ 	    	     appxml="Real Time Benefits/META-INF/application.xml">
+ 	    		 <fileset dir="Real Time Benefits" excludes="**/application.xml,**/org.eclipse.wst.common.component,**/org.eclipse.wst.common.project.facet.core.xml,.project"/>
+ 	    	</ear>
+	</target>
+
+	<!-- Adding build inoramtion to propety file -->
+	<target name="addVersion" >
+		<echo message="Updating Build Version File Real Time Benefits War/JavaSource/BuildInfo.properties" >
+ 		</echo>
+ 		<propertyfile file="Real Time Benefits War/JavaSource/BuildInfo.properties">
+			<entry key="build.number" type="int" operation="+" value="1" pattern="0000"/>
+ 		</propertyfile>
+ 		<!-- <property file="Real Time Benefits War/JavaSource/BuildInfo.properties" /> -->
+		<tstamp prefix="clock">
+			<format property="time" pattern="MM/dd/yyyy hh:mm:ss aa"/>
+ 		</tstamp>
+
+ 		<echo file="Real Time Benefits War/JavaSource/BuildInfo.properties" append="false">
+ 			build.number=${build.number}
+ 			timestamp=${clock.time}
+ 			author=${user.name}
+ 			environment=${environment}
+ 			comments=${comments}
+ 		</echo>
+
+ 		<concat destfile="Real Time Benefits War/JavaSource/BuildInfo.properties" append="true">
+ 			<filelist dir="Real Time Benefits War/CVS" files="Repository"/>
+ 			<filelist dir="Real Time Benefits War/CVS" files="Tag"/>
+		</concat>
+		<copy file="Real Time Benefits War/JavaSource/BuildInfo.properties" tofile="Real Time Benefits War/WebContent/WEB-INF/classes/BuildInfo.properties" 
+			  preservelastmodified="true" overwrite="true" />
+		<copy file="Real Time Benefits War/WebContent/version.template" tofile="Real Time Benefits War/WebContent/WEB-INF/classes/version.txt" overwrite="true"> 
+			<filterset> 
+				<filter token="RELEASE" value="${release_tag}" /> 
+			</filterset> 
+		</copy>
+	</target>
+  
+</project>

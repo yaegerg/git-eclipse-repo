@@ -1,0 +1,139 @@
+<project name="Sonar" basedir=".." default="sonar" xmlns:sonar="antlib:org.sonar.ant">
+	
+	<!-- setting the properties -->
+	<property file="D:/Program Files/Apache Software Foundation/apache-ant-1.8.4/build.properties"/>
+	<property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
+	<property name="app.name" value="RTB" />
+	<property name="lib.junit.dir" value="Real Time Benefits War/WebContent/WEB-INF/lib" />
+	<property name="build.dir" value="target" />
+	<property name="classes.dir" value="Real Time Benefits War/WebContent/WEB-INF/classes" />
+	<property name="test.dir" value="Real Time Benefits War/test" />
+	<property name="reports.dir" value="${build.dir}/reports" />
+	<property name="reports.junit.xml.dir" value="${reports.dir}/junit" />
+	
+	<!-- Define the Sonar properties -->
+	<property name="sonar.projectName" value="RTB" />
+	<property name="sonar.projectVersion" value="SNAPSHOT" />
+	<property name="sonar.language" value="java" />
+	<property name="sonar.sources" value="Real Time Benefits War/JavaSource"/>
+	<property name="sonar.binaries" value="Real Time Benefits War/WebContent/WEB-INF/classes" />
+	<property name="sonar.surefire.reportsPath" value="target/reports/junit" />
+
+	<!-- The following properties are required to use JaCoCo: -->
+	<property name="sonar.dynamicAnalysis" value="reuseReports" />
+	<property name="sonar.java.coveragePlugin" value="jacoco" />
+	<property name="sonar.jacoco.reportPath" value="target/jacoco.exec" />
+	
+	<!-- Defining the classpath -->
+	<path id="rtb.web.classpath">
+		<fileset dir="Real Time Benefits War/WebContent/WEB-INF/lib" includes="*.jar"/>
+		<fileset dir="Build/jacoco" includes="*.jar"/>
+	</path>
+	
+	<!-- Compiling the Web Module -->
+	<target name="rtb-web-compile">
+		<mkdir dir="Real Time Benefits War/WebContent/WEB-INF/classes" />
+    	<javac  compiler="org.eclipse.jdt.core.JDTCompilerAdapter"
+    		source="1.6"
+        	target="1.6"
+        	srcdir="Real Time Benefits War/JavaSource" 
+            destdir="Real Time Benefits War/WebContent/WEB-INF/classes" 
+        	classpathref="rtb.web.classpath" 
+			verbose="false" 
+            debug="on" 
+            optimize="on" 
+            deprecation="off">
+				<classpath>
+ 		    	   	<fileset dir="Build/jacoco" includes="ecj-3.7.1.jar"/>
+ 				</classpath>
+			<include name="**/*.java" />
+		</javac>
+		<javac  compiler="org.eclipse.jdt.core.JDTCompilerAdapter"
+			source="1.6"
+		    target="1.6"
+		    srcdir="Real Time Benefits War/test" 
+		    destdir="Real Time Benefits War/WebContent/WEB-INF/classes" 
+		    classpathref="rtb.web.classpath" 
+			verbose="false" 
+		    debug="on" 
+		    optimize="on" 
+		    deprecation="off">
+				<classpath>
+		 			<fileset dir="Build/jacoco" includes="ecj-3.7.1.jar"/>
+		 		</classpath>
+			<include name="**/*.java" />
+		</javac>
+	</target>
+	
+	<!-- ========= Define "regular" targets: clean, compile, test, ... ========= -->
+	<target name="clean" depends="rtb-web-compile">
+		<delete dir=".sonar" />
+		<delete dir="${build.dir}" />
+		<delete dir="${reports.dir}" />
+	</target>
+
+	<target name="init" depends="clean">
+		<mkdir dir="${build.dir}" />
+		<mkdir dir="${classes.dir}" />
+		<mkdir dir="${reports.dir}" />
+		<mkdir dir="${reports.junit.xml.dir}" />
+		<echo>${Sonar_hosturl}</echo>
+		<echo>${Sonar_jdbc}</echo>
+		<echo>${Sonar_driverclass}</echo>
+		<echo>${Sonar_username}</echo>
+		<echo>${sonar_password}</echo>
+		<echo>${sonar_secretKeyPath}</echo>
+	</target>
+
+	<path id="classpath">
+		<pathelement location="Real Time Benefits War/JavaSource"/>
+		<pathelement location="Real Time Benefits War/WebContent/WEB-INF/classes"/>
+		<fileset dir="Real Time Benefits War/WebContent/WEB-INF/lib" includes="**/*.jar"/>
+	</path>
+
+	<target name="test" depends="init">
+		<taskdef name="junit" classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask">
+			<classpath>
+				<path refid="classpath"/>
+			</classpath>
+		</taskdef>
+	<!-- Import the JaCoCo Ant Task -->
+		<taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
+	<!-- Update the following line, or put the "jacocoant.jar" file in your "$HOME/.ant/lib" folder -->
+			<classpath path="${ANT_HOME}/lib/jacocoant.jar" />
+		</taskdef>
+	<!-- Run your unit tests, adding the JaCoCo agent -->
+		<jacoco:coverage destfile="target/jacoco.exec" xmlns:jacoco="antlib:org.jacoco.ant">
+			<junit fork="yes" dir="${basedir}" failureProperty="test.failed">
+				<classpath location="${classes.dir}" />
+				<classpath refid="classpath" />
+				<formatter type="xml" />
+				<batchtest todir="${reports.junit.xml.dir}">
+					<fileset dir="${test.dir}">
+						<include name="**/*.java" />
+					</fileset>
+				</batchtest>
+			</junit>
+		</jacoco:coverage>	
+	</target>
+
+	<!-- ========= Define Sonar target ========= -->
+	<target name="sonar" depends="test">
+		<taskdef uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml">
+	<!-- Update the following line, or put the "sonar-ant-task-*.jar" file in your "$HOME/.ant/lib" folder -->
+			<classpath path="${ANT_HOME}/lib/sonar-ant-task-2.0.jar" />
+		</taskdef>
+			
+		<property name="sonar.scm.enabled" value="false" />
+		<property name="sonar.host.url" value="${Sonar_hosturl}"/>
+		<property name="sonar.jdbc.url" value="${Sonar_jdbc}" />
+		<property name="sonar.jdbc.driverClassName" value="${Sonar_driverclass}"/>
+		<property name="sonar.jdbc.username" value="${Sonar_username}" />
+		<property name="sonar.jdbc.password" value="${sonar_password}" />
+		<property name="sonar.secretKeyPath" value="${sonar_secretKeyPath}" />
+			
+	<!-- Execute Sonar -->
+		<sonar:sonar key="HCSC.RTB:RTB" version="SNAPSHOT"/>
+	</target>
+	
+</project>	
