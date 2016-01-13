@@ -21,3 +21,4 @@ exit /b %RC%
 ::COMMENT 1
 ::COMMENT 2
 ::COMMENT 3
+::COMMENT 4
