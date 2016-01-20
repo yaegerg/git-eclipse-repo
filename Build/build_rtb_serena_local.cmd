@@ -19,3 +19,4 @@ call ant -Drelease_tag=%dm_merge_bl% -Dwebsphere.serverhome="%BASE_DIR%" -f buil
 set RC=%ERRORLEVEL%
 exit /b %RC%
 ::COMMENT 1 for git-eclipse-repo/eclipse-branch1
+::COMMENT 1 FOR PROGRAMMER 2
